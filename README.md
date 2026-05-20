@@ -1,10 +1,18 @@
+<div align="center">
+
+<img src="assets/claude-logo.svg" width="72" alt="Claude Lifeboat">
+
 # Claude Lifeboat 🛟
 
-> Claude-aware backup for your Windows machine. Automatically backs up your Claude Desktop / Cowork data — conversation history, the Cowork VM session disk, settings, and Claude Code configs — so a lost session or a bad upgrade doesn't take your work with it.
+**Claude-aware backup for your Windows machine.** Automatically backs up your Claude Desktop / Cowork data — conversation history, the Cowork VM session disk, settings, and Claude Code configs — so a lost session or a bad upgrade doesn't take your work with it.
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.0+-5391FE)]()
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+Part of a small suite of Claude utilities, alongside **[Claude Meter](https://github.com/JackBhanded/claude-meter)**.
+
+</div>
 
 ---
 
