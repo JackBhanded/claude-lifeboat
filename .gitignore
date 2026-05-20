@@ -1,0 +1,16 @@
+# The raw chat export — kept locally as a reference, not part of the repo
+from-chat/
+files.zip
+
+# One-time local helper scripts (not part of the published repo)
+_setup-repo.ps1
+push-to-github.ps1
+
+# Local backup test output / scratch
+*.local.ps1
+test-output/
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
