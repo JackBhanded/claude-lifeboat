@@ -12,7 +12,14 @@ function Invoke-Dashboard {
     $dashboardPath = if ($Flags.path) {
         $Flags.path
     } else {
-        "$env:USERPROFILE\Desktop\Claude-Lifeboat.html"
+        # Keep it OFF the Desktop - lives at a stable path you can bookmark.
+        Join-Path $script:LifeboatHome "dashboard.html"
+    }
+
+    # Make sure the folder exists before we write the HTML into it.
+    $dashboardDir = Split-Path $dashboardPath -Parent
+    if ($dashboardDir -and -not (Test-Path $dashboardDir)) {
+        New-Item -ItemType Directory -Path $dashboardDir -Force | Out-Null
     }
 
     Write-Heading "Generating dashboard..."
@@ -88,10 +95,10 @@ function Generate-Dashboard {
     $recentLog = if (Test-Path $todayLog) { Get-Content $todayLog -Tail 30 } else { @() }
 
     $statusColor = switch ($statusJson.OverallStatus) {
-        'green' { '#16a34a' }
-        'yellow' { '#ca8a04' }
-        'red' { '#dc2626' }
-        default { '#6b7280' }
+        'green' { '#2F855A' }
+        'yellow' { '#C77F2E' }
+        'red' { '#C53030' }
+        default { '#8A857C' }
     }
     $statusText = switch ($statusJson.OverallStatus) {
         'green' { 'All systems healthy' }
@@ -112,52 +119,52 @@ function Generate-Dashboard {
 <title>Claude Lifeboat</title>
 <style>
 *{box-sizing:border-box}
-body{font-family:-apple-system,'Segoe UI',sans-serif;margin:0;padding:24px;background:#0b1220;color:#e2e8f0;min-height:100vh}
-.container{max-width:1200px;margin:0 auto}
-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;margin:0;padding:32px 24px;background:#FAF9F5;color:#2D2A26;min-height:100vh}
+.container{max-width:1080px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
 .logo{display:flex;align-items:center;gap:14px}
-.logo-icon{font-size:34px;line-height:1}
-h1{margin:0;font-size:24px;font-weight:700}
-.subtitle{color:#94a3b8;font-size:13px}
-.banner{background:linear-gradient(135deg,$statusColor,$statusColor`dd);padding:20px 24px;border-radius:14px;margin-bottom:24px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 24px rgba(0,0,0,0.3)}
-.banner-dot{width:14px;height:14px;border-radius:50%;background:white;box-shadow:0 0 12px rgba(255,255,255,0.7);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-.banner-text{font-size:20px;font-weight:600}
+.logo-icon{font-size:36px;line-height:1}
+h1{margin:0;font-size:24px;font-weight:600;color:#1F1F1F}
+.subtitle{color:#8A857C;font-size:13px}
+.banner{background:#fff;border:1px solid #E8E4DB;border-left:5px solid $statusColor;padding:18px 22px;border-radius:14px;margin-bottom:26px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.banner-dot{width:12px;height:12px;border-radius:50%;background:$statusColor;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+.banner-text{font-size:18px;font-weight:600;color:#1F1F1F}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
-.card{background:#111827;border:1px solid #1f2937;border-radius:14px;padding:20px;transition:transform 0.2s}
-.card h2{margin:0 0 16px;font-size:13px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.8px}
-.row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #1f2937;align-items:center}
+.card{background:#fff;border:1px solid #E8E4DB;border-radius:14px;padding:22px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.card h2{margin:0 0 16px;font-size:12px;color:#A8917E;font-weight:600;text-transform:uppercase;letter-spacing:0.8px}
+.row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #F0ECE3;align-items:center}
 .row:last-child{border-bottom:none}
-.row-name{font-weight:500}
-.row-detail{color:#94a3b8;font-size:12px;margin-top:2px}
-.badge{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px}
-.badge-green{background:#0f5132;color:#a3e635}
-.badge-yellow{background:#78350f;color:#fde047}
-.badge-red{background:#7f1d1d;color:#fca5a5}
-.badge-gray{background:#334155;color:#cbd5e1}
-.drive-name{font-size:20px;font-weight:700;margin-bottom:2px}
-.drive-sub{color:#94a3b8;font-size:12px;margin-bottom:14px}
-.progress{background:#0b1220;border-radius:8px;height:28px;overflow:hidden;position:relative;border:1px solid #1f2937}
-.progress-fill{height:100%;background:linear-gradient(90deg,#3b82f6,#06b6d4);transition:width 0.6s}
-.progress-fill.warning{background:linear-gradient(90deg,#ca8a04,#eab308)}
-.progress-fill.danger{background:linear-gradient(90deg,#dc2626,#ef4444)}
-.progress-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;font-weight:700}
-.stats{display:flex;gap:24px;margin-top:14px}
-.stat strong{display:block;color:#e2e8f0;font-size:16px}
-.stat-label{color:#94a3b8;font-size:11px;text-transform:uppercase}
+.row-name{font-weight:500;color:#2D2A26}
+.row-detail{color:#8A857C;font-size:12px;margin-top:2px}
+.badge{padding:4px 11px;border-radius:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px}
+.badge-green{background:#E5F2E9;color:#2F7D52}
+.badge-yellow{background:#FBEEDB;color:#9A6B1C}
+.badge-red{background:#FBE6E4;color:#B23A30}
+.badge-gray{background:#EFEBE2;color:#6B665E}
+.drive-name{font-size:19px;font-weight:600;margin-bottom:2px;color:#1F1F1F}
+.drive-sub{color:#8A857C;font-size:12px;margin-bottom:14px}
+.progress{background:#ECE9E1;border-radius:8px;height:26px;overflow:hidden;position:relative}
+.progress-fill{height:100%;background:#2563EB;transition:width 0.6s}
+.progress-fill.warning{background:#EA580C}
+.progress-fill.danger{background:#DC2626}
+.progress-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;font-weight:600;color:#1F1F1F}
+.stats{display:flex;gap:28px;margin-top:14px}
+.stat strong{display:block;color:#1F1F1F;font-size:16px}
+.stat-label{color:#8A857C;font-size:11px;text-transform:uppercase}
 .snaps{max-height:260px;overflow-y:auto}
-.snap-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1f2937;font-size:12px;align-items:center}
+.snap-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F0ECE3;font-size:12px;align-items:center}
 .snap-row:last-child{border-bottom:none}
-.snap-meta{color:#94a3b8}
+.snap-meta{color:#8A857C}
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:9px 8px;color:#94a3b8;font-weight:600;border-bottom:1px solid #1f2937;font-size:10px;text-transform:uppercase}
-td{padding:10px 8px;border-bottom:1px solid #1f2937}
-.log{background:#020617;border-radius:10px;padding:14px;max-height:240px;overflow-y:auto;font-family:'Consolas',monospace;font-size:11px;line-height:1.5;color:#94a3b8}
-.log-err{color:#fca5a5}
-.log-warn{color:#fde047}
-.footer{text-align:center;color:#475569;font-size:11px;margin-top:24px}
-.empty{color:#475569;text-align:center;padding:24px;font-style:italic;font-size:13px}
-code{background:#1f2937;padding:2px 6px;border-radius:4px;font-size:11px}
+th{text-align:left;padding:9px 8px;color:#A8917E;font-weight:600;border-bottom:1px solid #E8E4DB;font-size:10px;text-transform:uppercase}
+td{padding:10px 8px;border-bottom:1px solid #F0ECE3;color:#2D2A26}
+.log{background:#F5F2EA;border:1px solid #EDE7DB;border-radius:10px;padding:14px;max-height:240px;overflow-y:auto;font-family:'Consolas',monospace;font-size:11px;line-height:1.6;color:#6B665E}
+.log-err{color:#C0392B}
+.log-warn{color:#9A6B1C}
+.footer{text-align:center;color:#A8A296;font-size:11px;margin-top:28px}
+.empty{color:#A8A296;text-align:center;padding:24px;font-style:italic;font-size:13px}
+code{background:#EFEBE2;padding:2px 6px;border-radius:4px;font-size:11px;color:#7A4A33}
 @media(max-width:768px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -166,10 +173,10 @@ code{background:#1f2937;padding:2px 6px;border-radius:4px;font-size:11px}
 
 <header>
   <div class="logo">
-    <div class="logo-icon">$([char]0x1F6DF)</div>
+    <div class="logo-icon"><svg width="36" height="36" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z" fill="#D97757"/></svg></div>
     <div>
-      <h1>Claude Lifeboat</h1>
-      <div class="subtitle">$(Get-Date -Format 'dddd, MMMM dd yyyy &middot; HH:mm:ss')</div>
+      <h1>Claude Lifeboat &#x1F6DF;</h1>
+      <div class="subtitle">$(Get-Date -Format 'dddd, MMMM dd yyyy') &middot; $(Get-Date -Format 'HH:mm:ss')</div>
     </div>
   </div>
   <div class="subtitle">auto-refreshes every 60s</div>
