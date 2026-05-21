@@ -101,10 +101,27 @@ src/
 legacy/               first-generation scripts, archived for reference
 ```
 
-## About
+## About the author
 
-Built by **[Jack Bhanded](https://www.sawyouatsinai.com/jewish-dating-team.aspx)**, Lead developer and architect at [SawYouAtSinai](https://www.sawyouatsinai.com). Part of a small suite of Claude utilities alongside [Claude Meter](https://github.com/JackBhanded/claude-meter).
+<table>
+<tr>
+<td width="120" valign="top">
+<img src="https://www.SawYouAtSinai.com/_layouts/images/team/jackbio.jpg" width="100" alt="Jack Bhanded">
+</td>
+<td valign="top">
+
+Built by **[Jack Bhanded](https://www.sawyouatsinai.com/jewish-dating-team.aspx)**, Lead developer and architect at [SawYouAtSinai](https://www.sawyouatsinai.com). Devotee of innovative technologies and gadgets. Built this because he wanted his Claude Desktop and Cowork data backed up safely and automatically — with a one-click restore for when something goes wrong.
+
+</td>
+</tr>
+</table>
+
+Part of a small suite of Claude utilities alongside [Claude Meter](https://github.com/JackBhanded/claude-meter) (live usage on your taskbar) and [Claude Lifejacket](https://github.com/JackBhanded/claude-lifejacket) (keep every Claude session aware of your projects).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the version-by-version list of changes.
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE) — do whatever you want, just keep the copyright notice.
