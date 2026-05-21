@@ -45,17 +45,24 @@ Backups are plain files (robocopy `/MIR`) — directly browsable in Explorer, no
 
 ## Install
 
-PowerShell 5+ (ships with Windows 10/11). **Run as Administrator** (Task Scheduler registration needs it).
+Windows 10/11 (PowerShell 5+ ships built in). Pick whichever's easiest:
 
-1. Download the latest release zip from the [Releases page](../../releases) and extract it.
-2. Open an **elevated** PowerShell in the extracted folder.
-3. Run:
-   ```powershell
-   .\install.ps1
-   ```
-4. Answer two questions (primary drive, optional archive drive). It registers the scheduled tasks and runs a first backup to verify everything works.
+**Easiest — one line.** Open PowerShell **as Administrator** and paste:
 
-That's it. Your Claude data is now backed up automatically.
+```powershell
+irm https://github.com/JackBhanded/claude-lifeboat/raw/main/install.ps1 | iex
+```
+
+It downloads itself, installs, and walks you through two quick questions
+(primary drive, optional archive drive).
+
+**No terminal — double-click.** Download the latest release zip from the
+[Releases page](https://github.com/JackBhanded/claude-lifeboat/releases/latest),
+extract it, and double-click **`Install Claude Lifeboat.bat`**. It asks Windows
+for permission (needed to schedule your backups), then installs itself.
+
+Either way, when it finishes your Claude data is backed up automatically — and
+you'll have the `lifeboat` command for everything below.
 
 ## Usage
 

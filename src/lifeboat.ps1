@@ -34,7 +34,7 @@ param(
     [string[]]$Arguments
 )
 
-$script:LifeboatVersion = "0.1.1"
+$script:LifeboatVersion = "0.1.2"
 $script:LifeboatHome = "$env:LOCALAPPDATA\ClaudeLifeboat"
 $script:ConfigPath = Join-Path $LifeboatHome "config.json"
 $script:LogDir = Join-Path $LifeboatHome "logs"

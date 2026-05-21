@@ -5,7 +5,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); versioning per 
 
 ## [Unreleased]
 
-- Real `irm | iex` one-line installer once GitHub releases exist to download from
+## [0.1.2] — 2026-05-21
+
+### Added
+- **Easy install.** The one-line installer now actually downloads and installs
+  itself: `irm https://github.com/JackBhanded/claude-lifeboat/raw/main/install.ps1 | iex`
+  (resolves the latest release, falls back to the latest code, TLS 1.2).
+- **Double-click installer** — `Install Claude Lifeboat.bat` self-elevates
+  (asks for the admin rights needed to schedule backups) and runs the installer,
+  so no PowerShell or execution-policy wrangling is required.
 
 ## [0.1.1] — 2026-05-21
 

@@ -51,22 +51,59 @@ Write-Host "    User: $env:USERNAME"
 Write-Host "    OS: $((Get-WmiObject Win32_OperatingSystem).Caption)"
 Write-Host "    PS: $($PSVersionTable.PSVersion)"
 
-# If we're being piped from iex, download the release zip
+# If we're being piped from iex (no local files), download the release ourselves
+# so the one-line installer works end to end.
+$repo = "JackBhanded/claude-lifeboat"
 $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { $null }
 if (-not $scriptDir -or -not (Test-Path (Join-Path $scriptDir "src\lifeboat.ps1"))) {
-    Write-Step "Downloading latest release..."
+    Write-Step "Downloading Claude Lifeboat..."
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $tempDir = Join-Path $env:TEMP "claude-lifeboat-$(Get-Random)"
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 
-    # In production this would download from GitHub releases.
-    # For now, give an error since we're not piped from a real release.
-    if (-not $scriptDir) {
+    # Work out which source archive to grab (latest release tag, else main).
+    $zipUrl = $null
+    try {
+        if ($Version -eq "latest") {
+            $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" `
+                -Headers @{ "User-Agent" = "claude-lifeboat-installer" }
+            $tag = $rel.tag_name
+        } else {
+            $tag = $Version
+        }
+        if ($tag) { $zipUrl = "https://github.com/$repo/archive/refs/tags/$tag.zip" }
+    } catch {
+        Write-Host "    (no published release yet - falling back to the latest code)" -ForegroundColor DarkGray
+    }
+    if (-not $zipUrl) { $zipUrl = "https://github.com/$repo/archive/refs/heads/main.zip" }
+
+    $zipPath = Join-Path $tempDir "lifeboat.zip"
+    Write-Host "    From: $zipUrl"
+    try {
+        Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
+        Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
+    } catch {
         Write-Host ""
-        Write-Host "  ! Could not auto-download. Please run from a cloned repo or downloaded zip." -ForegroundColor Red
-        Write-Host "    Clone: git clone https://github.com/JackBhanded/claude-lifeboat" -ForegroundColor Yellow
+        Write-Host "  ! Couldn't download Claude Lifeboat ($($_.Exception.Message))." -ForegroundColor Red
+        Write-Host "    Check your internet connection and try again, or download the zip" -ForegroundColor Yellow
+        Write-Host "    from https://github.com/$repo and run install.ps1 from inside it." -ForegroundColor Yellow
         Write-Host ""
         exit 1
     }
+
+    # The archive unpacks into a subfolder (claude-lifeboat-<tag/main>); find the
+    # one that actually contains the source.
+    $extracted = Get-ChildItem -Path $tempDir -Directory |
+        Where-Object { Test-Path (Join-Path $_.FullName "src\lifeboat.ps1") } |
+        Select-Object -First 1
+    if (-not $extracted) {
+        Write-Host ""
+        Write-Host "  ! The download didn't contain the expected files. Aborting safely." -ForegroundColor Red
+        Write-Host ""
+        exit 1
+    }
+    $scriptDir = $extracted.FullName
+    Write-Host "  $([char]0x2713) Downloaded" -ForegroundColor Green
 }
 
 # Copy files to install location
