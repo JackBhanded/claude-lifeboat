@@ -13,6 +13,9 @@ NOTES.md
 *.local.ps1
 test-output/
 
+# Release build output (produced by tools\Build-Release.ps1)
+dist/
+
 # OS
 Thumbs.db
 desktop.ini

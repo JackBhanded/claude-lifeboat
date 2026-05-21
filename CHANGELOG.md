@@ -5,6 +5,17 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); versioning per 
 
 ## [Unreleased]
 
+### Added
+- **Real release packaging** (`tools\Build-Release.ps1`). Builds a clean,
+  versioned `claude-lifeboat-v<version>.zip` plus a SHA256 checksum, containing
+  only what an end user needs (no `legacy/`, no dev notes). Version is read from
+  `src\lifeboat.ps1` so there's a single source of truth.
+
+### Changed
+- The one-line installer now **prefers a packaged release asset** when one is
+  attached to the release, falling back to GitHub's source archive for older
+  asset-less releases (and to `main` if there's no release at all).
+
 ## [0.1.4] — 2026-05-21
 
 ### Added

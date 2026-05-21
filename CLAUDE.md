@@ -45,12 +45,17 @@ Two-tier storage (always-on PRIMARY + optional ARCHIVE drive); `latest` mirror +
 
 One line (Admin PowerShell): `irm https://github.com/JackBhanded/claude-lifeboat/raw/main/install.ps1 | iex`.
 No terminal: download the release zip, double-click `Install Claude Lifeboat.bat`.
-Releases are published by hand (PowerShell tool — no build artifact); the source
-zip carries everything.
+Releases are packaged by `tools\Build-Release.ps1` into a clean, versioned
+`claude-lifeboat-v<version>.zip` (+ SHA256) under `dist\` — only end-user files,
+no `legacy/` or dev notes. The version is read from `src\lifeboat.ps1` (single
+source of truth). Publish by hand: tag, create the release, attach the zip +
+`.sha256` (the script prints the exact steps). The installer prefers that asset
+and falls back to GitHub's source archive for older asset-less releases.
 
 ## Roadmap
 
-Real release-asset packaging; v0.2 coordination with Lifejacket. Open follow-up:
+v0.2 coordination with Lifejacket. (Real release-asset packaging: done — see
+`tools\Build-Release.ps1`.) Open follow-up:
 make the activity log easier to find from the dashboard/tray (status.json lives on
 the backup drive; logs live under `%LOCALAPPDATA%\ClaudeLifeboat\logs`).
 

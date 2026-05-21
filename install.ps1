@@ -61,17 +61,25 @@ if (-not $scriptDir -or -not (Test-Path (Join-Path $scriptDir "src\lifeboat.ps1"
     $tempDir = Join-Path $env:TEMP "claude-lifeboat-$(Get-Random)"
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 
-    # Work out which source archive to grab (latest release tag, else main).
+    # Prefer a clean packaged release asset (claude-lifeboat-vX.Y.Z.zip); fall
+    # back to GitHub's source archive for older asset-less releases, and to main
+    # if there's no published release at all.
     $zipUrl = $null
     try {
         if ($Version -eq "latest") {
             $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" `
                 -Headers @{ "User-Agent" = "claude-lifeboat-installer" }
-            $tag = $rel.tag_name
         } else {
-            $tag = $Version
+            $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/tags/$Version" `
+                -Headers @{ "User-Agent" = "claude-lifeboat-installer" }
         }
-        if ($tag) { $zipUrl = "https://github.com/$repo/archive/refs/tags/$tag.zip" }
+        $tag = $rel.tag_name
+        $asset = $rel.assets | Where-Object { $_.name -like "claude-lifeboat-*.zip" } | Select-Object -First 1
+        if ($asset) {
+            $zipUrl = $asset.browser_download_url
+        } elseif ($tag) {
+            $zipUrl = "https://github.com/$repo/archive/refs/tags/$tag.zip"
+        }
     } catch {
         Write-Host "    (no published release yet - falling back to the latest code)" -ForegroundColor DarkGray
     }
