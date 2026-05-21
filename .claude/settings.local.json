@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"C:\\\\Users\\\\Jack\\\\Documents\\\\Claude\\\\Projects\\\\Claude Lifeboat\" diff --stat)",
+      "Bash(git -C \"C:\\\\Users\\\\Jack\\\\Documents\\\\Claude\\\\Projects\\\\Claude Lifeboat\" log --oneline -5)",
+      "Bash(git *)"
+    ]
+  }
+}
