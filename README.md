@@ -124,7 +124,7 @@ Built by **[Jack Bhanded](https://www.sawyouatsinai.com/jewish-dating-team.aspx)
 </tr>
 </table>
 
-Part of a small suite of Claude utilities alongside [Claude Meter](https://github.com/JackBhanded/claude-meter) (live usage on your taskbar) and [Claude Lifejacket](https://github.com/JackBhanded/claude-lifejacket) (keep every Claude session aware of your projects).
+Part of a small suite of Claude utilities alongside [Claude Meter](https://github.com/JackBhanded/claude-meter) (live usage on your taskbar), [Claude Lifejacket](https://github.com/JackBhanded/claude-lifejacket) (keep every Claude session aware of your projects), and [Claude Compass](https://github.com/JackBhanded/claude-compass) (keep every session attuned to how you like to work).
 
 ## Changelog
 
