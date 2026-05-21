@@ -34,7 +34,7 @@ param(
     [string[]]$Arguments
 )
 
-$script:LifeboatVersion = "0.1.2"
+$script:LifeboatVersion = "0.1.4"
 $script:LifeboatHome = "$env:LOCALAPPDATA\ClaudeLifeboat"
 $script:ConfigPath = Join-Path $LifeboatHome "config.json"
 $script:LogDir = Join-Path $LifeboatHome "logs"
@@ -91,11 +91,13 @@ function Show-Help {
     --notify     (status) Show Windows toast if issues found
     --preview    (restore) Restore to a temp folder first (recommended)
     --force      (restore, uninstall) Skip confirmations
+    --to=X:      (backup) One-time backup to a specific drive right now (e.g. a USB)
 
   EXAMPLES
     lifeboat install                    # First-time setup
     lifeboat status                     # Quick health check
     lifeboat backup                     # Run a backup now
+    lifeboat backup --to=E:             # One-time backup to a USB / removable drive
     lifeboat restore --preview          # Safe restore (recommended first time)
     lifeboat doctor                     # Fix what you can automatically
     lifeboat dashboard                  # Open visual dashboard
@@ -117,7 +119,17 @@ foreach ($arg in $Arguments) {
 switch ($Command) {
     "install"   { Invoke-Install -Flags $flags }
     "status"    { Invoke-Status -Flags $flags }
-    "backup"    { Invoke-Backup -Flags $flags }
+    "backup"    {
+                    # 'lifeboat backup --to=E:' (or '--to E:') does a one-time
+                    # backup to a drive you pick, leaving your configured archive alone.
+                    $target = $null
+                    if ($flags.ContainsKey('to')) {
+                        if ($flags.to -ne $true) { $target = $flags.to }
+                        else { $target = ($Arguments | Where-Object { $_ -notmatch '^--' } | Select-Object -First 1) }
+                    }
+                    if ($target) { Invoke-BackupToDrive -Target $target -Flags $flags }
+                    else { Invoke-Backup -Flags $flags }
+                }
     "restore"   { Invoke-Restore -Flags $flags }
     "verify"    { Invoke-Verify -Flags $flags }
     "doctor"    { Invoke-Doctor -Flags $flags }

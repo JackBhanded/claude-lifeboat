@@ -153,6 +153,79 @@ function Invoke-RobocopyLive($source, $destination, $label, [switch]$Mirror, [st
     }
 }
 
+function New-VolumeShadowCopy {
+    # Snapshot a volume so we can copy files a running app (Claude Desktop /
+    # Cowork) holds locked - chiefly the live sessiondata.vhdx. Returns a small
+    # object describing the snapshot, or $null if VSS isn't available (e.g. not
+    # elevated). Callers MUST treat $null as "just copy live" and carry on.
+    param([string]$Drive = $env:SystemDrive)
+    if (-not $Drive) { $Drive = "C:" }
+    try {
+        $class = [WMICLASS]"root\cimv2:Win32_ShadowCopy"
+        $res = $class.Create("$Drive\", "ClientAccessible")
+        if (-not $res -or $res.ReturnValue -ne 0) { return $null }
+        $sc = Get-WmiObject Win32_ShadowCopy | Where-Object { $_.ID -eq $res.ShadowID }
+        if (-not $sc) { return $null }
+        $target = $sc.DeviceObject + "\"   # trailing slash is required for the link
+        # Mount at the drive root (no spaces in that path -> no quoting headaches).
+        $mount = Join-Path "$Drive\" ("lifeboat-vss-" + [Guid]::NewGuid().ToString("N").Substring(0,8))
+        & cmd.exe /c mklink /d $mount $target *> $null
+        if (-not (Test-Path $mount)) {
+            try { $sc.Delete() } catch {}
+            return $null
+        }
+        return [PSCustomObject]@{ Id = $sc.ID; MountPath = $mount; Drive = $Drive }
+    } catch {
+        return $null
+    }
+}
+
+function Remove-VolumeShadowCopy($snap) {
+    if (-not $snap) { return }
+    try {
+        if ($snap.MountPath -and (Test-Path $snap.MountPath)) {
+            & cmd.exe /c rmdir $snap.MountPath *> $null   # removes the symlink, not the target
+        }
+    } catch {}
+    try {
+        $sc = Get-WmiObject Win32_ShadowCopy | Where-Object { $_.ID -eq $snap.Id }
+        if ($sc) { $sc.Delete() }
+    } catch {}
+}
+
+function ConvertTo-ShadowPath($sourcePath, $snap) {
+    # Map a real path on the snapshot's drive to its location inside the snapshot
+    # mount. Returns $null if the source isn't on that drive.
+    if (-not $snap) { return $null }
+    $drive = $snap.Drive
+    if ($sourcePath -like "$drive\*") {
+        $rel = $sourcePath.Substring($drive.Length).TrimStart('\')
+        return (Join-Path $snap.MountPath $rel)
+    }
+    return $null
+}
+
+function Get-BackupTargetDrives {
+    # Drives we can offer as on-demand backup targets: ready, not the system
+    # drive, not a CD/DVD. Returns letter + free space + label for each.
+    $sys = $env:SystemDrive
+    $out = @()
+    try {
+        foreach ($d in [System.IO.DriveInfo]::GetDrives()) {
+            try {
+                if (-not $d.IsReady) { continue }
+                $letter = $d.Name.TrimEnd('\')          # e.g. "E:"
+                if ($letter -eq $sys) { continue }
+                if ($d.DriveType -eq 'CDRom') { continue }
+                $freeGB = [math]::Round($d.AvailableFreeSpace / 1GB, 1)
+                $label = if ($d.VolumeLabel) { $d.VolumeLabel } else { "$($d.DriveType)" }
+                $out += [PSCustomObject]@{ Letter = $letter; FreeGB = $freeGB; Label = $label; Type = "$($d.DriveType)" }
+            } catch {}
+        }
+    } catch {}
+    return $out
+}
+
 function Write-LifeboatLog($message, [string]$level = "INFO") {
     if (-not (Test-Path $script:LogDir)) {
         New-Item -ItemType Directory -Path $script:LogDir -Force | Out-Null

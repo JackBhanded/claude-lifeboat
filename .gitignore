@@ -6,6 +6,9 @@ files.zip
 _setup-repo.ps1
 push-to-github.ps1
 
+# Private working journal (never published)
+NOTES.md
+
 # Local backup test output / scratch
 *.local.ps1
 test-output/

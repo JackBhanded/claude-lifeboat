@@ -138,6 +138,12 @@ Write-Host "  $([char]0x2713) Files installed" -ForegroundColor Green
 if (-not $NoSetup) {
     Write-Step "Running initial setup..."
     & powershell.exe -ExecutionPolicy Bypass -File (Join-Path $InstallTo "lifeboat.ps1") install
+
+    # Bring the tray up right away so you can see it now (it also auto-starts at
+    # each logon via its scheduled task).
+    Write-Step "Starting the tray..."
+    & powershell.exe -ExecutionPolicy Bypass -File (Join-Path $InstallTo "lifeboat.ps1") tray
+    Write-Host "  $([char]0x2713) Look for the lifebuoy in your system tray (near the clock)." -ForegroundColor Green
 } else {
     Write-Host ""
     Write-Host "  $([char]0x2713) Installation complete. Run 'lifeboat install' when ready." -ForegroundColor Green

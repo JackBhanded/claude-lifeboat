@@ -5,6 +5,35 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); versioning per 
 
 ## [Unreleased]
 
+## [0.1.4] — 2026-05-21
+
+### Added
+- **On-demand backup to any drive.** Plug in a USB/removable drive and back up
+  to it right now — from the tray ("Back up to a drive..." lists what's
+  connected) or the CLI (`lifeboat backup --to=E:`). Uses VSS, and leaves your
+  configured archive untouched.
+
+### Changed
+- The tray's "Exit & stop automatic backups" now asks for confirmation first
+  (so a stray click can't silently turn off your backups), and its message
+  points you to "Resume automatic backups" in the tray instead of a CLI command
+  that may not be on PATH.
+
+## [0.1.3] — 2026-05-21
+
+### Added
+- **Open-file backups via VSS.** Backups now take a Volume Shadow Copy snapshot
+  and copy from it, so files a running app holds locked — chiefly the live
+  Cowork `sessiondata.vhdx` — back up cleanly instead of being skipped
+  (the `ClaudeDesktop -> primary: FAIL exit 11` lines). If VSS isn't available
+  it safely falls back to a live copy, and the snapshot is always released.
+- The installer now **launches the tray immediately** after setup (it still
+  also auto-starts at each logon).
+
+### Changed
+- Scheduled backup tasks now run at `RunLevel Highest` (still no UAC prompt via
+  S4U) so the automatic backups can use VSS for locked files.
+
 ## [0.1.2] — 2026-05-21
 
 ### Added

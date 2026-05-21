@@ -58,22 +58,45 @@ function Invoke-Backup {
     }
 
     $results = @{}
-    foreach ($name in $paths.Keys) {
-        $src = $paths[$name]
-        $dst = Join-Path $primaryLatest $name
-        if ($silent) {
-            $result = Invoke-Robocopy $src $dst -Mirror -ExtraExcludeFiles $vmExcludes
-        } else {
-            # Live spinner so big copies (the VM bundle) don't look frozen.
-            $result = Invoke-RobocopyLive $src $dst $name -Mirror -ExtraExcludeFiles $vmExcludes
-            if ($result.Success) {
-                Write-Host ("    {0}  OK" -f $name) -ForegroundColor Green
-            } else {
-                Write-Host ("    {0}  FAILED (exit {1})" -f $name, $result.ExitCode) -ForegroundColor Red
+    # Take a one-shot volume snapshot so files a running app holds open (chiefly
+    # the live Cowork sessiondata.vhdx) copy cleanly instead of being skipped.
+    # If VSS isn't available (e.g. not elevated), $snap is $null and we copy live
+    # exactly as before. The snapshot is always released in the finally block.
+    $snap = New-VolumeShadowCopy
+    if ($snap) {
+        Write-LifeboatLog "VSS snapshot created"
+        if (-not $silent) { Write-Host "  Took a safe snapshot (so open files copy cleanly)" -ForegroundColor DarkGray }
+    } else {
+        Write-LifeboatLog "VSS unavailable - copying live (open files may be skipped)" "WARN"
+        if (-not $silent) { Write-Host "  (Copying live - run elevated for open-file support)" -ForegroundColor DarkGray }
+    }
+    try {
+        foreach ($name in $paths.Keys) {
+            $src = $paths[$name]
+            $dst = Join-Path $primaryLatest $name
+            # Copy from the snapshot if this source lives on the snapshotted drive.
+            $copySrc = $src
+            if ($snap) {
+                $shadowSrc = ConvertTo-ShadowPath $src $snap
+                if ($shadowSrc -and (Test-Path $shadowSrc)) { $copySrc = $shadowSrc }
             }
+            if ($silent) {
+                $result = Invoke-Robocopy $copySrc $dst -Mirror -ExtraExcludeFiles $vmExcludes
+            } else {
+                # Live spinner so big copies (the VM bundle) don't look frozen.
+                $result = Invoke-RobocopyLive $copySrc $dst $name -Mirror -ExtraExcludeFiles $vmExcludes
+                if ($result.Success) {
+                    Write-Host ("    {0}  OK" -f $name) -ForegroundColor Green
+                } else {
+                    Write-Host ("    {0}  FAILED (exit {1})" -f $name, $result.ExitCode) -ForegroundColor Red
+                }
+            }
+            $results[$name] = $result
+            Write-LifeboatLog "$name -> primary: $(if($result.Success){'OK'}else{'FAIL exit '+$result.ExitCode})"
         }
-        $results[$name] = $result
-        Write-LifeboatLog "$name -> primary: $(if($result.Success){'OK'}else{'FAIL exit '+$result.ExitCode})"
+    } finally {
+        Remove-VolumeShadowCopy $snap
+        if ($snap) { Write-LifeboatLog "VSS snapshot released" }
     }
 
     # Did anything actually change this run? robocopy exit 0 = nothing copied;
@@ -265,6 +288,106 @@ function Test-BackupSample {
         AllPassed = ($failed -eq 0)
         Tested = $sample.Count
         Failed = $failed
+    }
+}
+
+function Invoke-BackupToDrive {
+    # On-demand backup to a drive the user picks right now (e.g. a USB stick),
+    # without changing the configured permanent archive. Uses VSS so open files
+    # (the live Cowork sessiondata.vhdx) copy cleanly.
+    param([string]$Target, $Flags)
+
+    $silent = [bool]$Flags.silent
+    if (-not $Target) {
+        Write-Failure "No drive given. Try:  lifeboat backup --to=E:"
+        return
+    }
+
+    # Normalize: "E", "E:", "E:\" -> "E:\ClaudeLifeboat"; a full path is used as-is.
+    $t = $Target.Trim().Trim('"')
+    if ($t -match '^[A-Za-z]$')        { $t = "${t}:" }
+    if ($t -match '^[A-Za-z]:$')       { $t = "$t\" }
+    if ($t -match '^[A-Za-z]:\\$')     { $targetRoot = Join-Path $t "ClaudeLifeboat" }
+    else                               { $targetRoot = $t }
+
+    $driveRoot = [System.IO.Path]::GetPathRoot($targetRoot)
+    if (-not $driveRoot -or -not (Test-DrivePath ($driveRoot.TrimEnd('\')))) {
+        Write-Failure "That drive isn't available right now: $driveRoot"
+        Write-Info "Plug it in (or double-check the letter) and try again."
+        return
+    }
+
+    $config = Get-LifeboatConfig
+    $mode = if ($config -and $config.BackupMode) { $config.BackupMode } else { 'lean' }
+    $vmExcludes = if ($mode -eq 'lean') {
+        @('rootfs.vhdx', 'rootfs.vhdx.zst', 'smol-bin.vhdx', '.rootfs.vhdx.origin', '.rootfs.vhdx.zst.origin')
+    } else { @() }
+
+    if (-not $silent) { Write-Heading "Backing up to $targetRoot ..." }
+    Write-LifeboatLog "On-demand backup to $targetRoot started"
+
+    $paths = Get-ClaudeDataPaths
+    if ($config -and $config.ExtraPaths) {
+        foreach ($p in $config.ExtraPaths) {
+            if (Test-Path $p) { $paths["Extra-$(Split-Path $p -Leaf)"] = $p }
+        }
+    }
+    if ($paths.Count -eq 0) {
+        Write-Warning2 "Nothing to back up. Is Claude Desktop installed?"
+        return
+    }
+
+    $latest = Join-Path $targetRoot "latest"
+    New-Item -ItemType Directory -Path $latest -Force | Out-Null
+
+    $results = @{}
+    $snap = New-VolumeShadowCopy
+    if ($snap) {
+        Write-LifeboatLog "VSS snapshot created (on-demand)"
+        if (-not $silent) { Write-Host "  Took a safe snapshot (so open files copy cleanly)" -ForegroundColor DarkGray }
+    } else {
+        Write-LifeboatLog "VSS unavailable (on-demand) - copying live" "WARN"
+    }
+    try {
+        foreach ($name in $paths.Keys) {
+            $src = $paths[$name]
+            $dst = Join-Path $latest $name
+            $copySrc = $src
+            if ($snap) {
+                $shadowSrc = ConvertTo-ShadowPath $src $snap
+                if ($shadowSrc -and (Test-Path $shadowSrc)) { $copySrc = $shadowSrc }
+            }
+            if ($silent) {
+                $result = Invoke-Robocopy $copySrc $dst -Mirror -ExtraExcludeFiles $vmExcludes
+            } else {
+                $result = Invoke-RobocopyLive $copySrc $dst $name -Mirror -ExtraExcludeFiles $vmExcludes
+                if ($result.Success) {
+                    Write-Host ("    {0}  OK" -f $name) -ForegroundColor Green
+                } else {
+                    Write-Host ("    {0}  FAILED (exit {1})" -f $name, $result.ExitCode) -ForegroundColor Red
+                }
+            }
+            $results[$name] = $result
+            Write-LifeboatLog "$name -> ${targetRoot}: $(if($result.Success){'OK'}else{'FAIL exit '+$result.ExitCode})"
+        }
+    } finally {
+        Remove-VolumeShadowCopy $snap
+        if ($snap) { Write-LifeboatLog "VSS snapshot released (on-demand)" }
+    }
+
+    # Stamp the time so it's obvious when this drive was last updated.
+    try { (Get-Date).ToString("yyyy-MM-dd HH:mm:ss") | Set-Content -Path (Join-Path $targetRoot ".last_backup") -Encoding UTF8 } catch {}
+    Write-LifeboatLog "On-demand backup to $targetRoot completed"
+
+    if (-not $silent) {
+        Write-Host ""
+        $failed = @($results.GetEnumerator() | Where-Object { -not $_.Value.Success } | ForEach-Object { $_.Key })
+        if ($failed.Count -eq 0) {
+            Write-Success "Done - your Claude data is now safe on $targetRoot too."
+        } else {
+            Write-Warning2 "Finished, but these want a second look: $($failed -join ', ')."
+            Write-Info "Nothing was lost. Try again, or close Claude and re-run."
+        }
     }
 }
 

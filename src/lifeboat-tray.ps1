@@ -137,6 +137,27 @@ function Set-ScheduleEnabled([bool]$enabled) {
     } catch { return $false }
 }
 
+function Get-TargetDrives {
+    # Drives we can offer for an on-demand backup: ready, not the system drive,
+    # not a CD/DVD.
+    $sys = $env:SystemDrive
+    $out = @()
+    try {
+        foreach ($d in [System.IO.DriveInfo]::GetDrives()) {
+            try {
+                if (-not $d.IsReady) { continue }
+                $letter = $d.Name.TrimEnd('\')
+                if ($letter -eq $sys) { continue }
+                if ($d.DriveType -eq 'CDRom') { continue }
+                $freeGB = [math]::Round($d.AvailableFreeSpace / 1GB, 1)
+                $label = if ($d.VolumeLabel) { $d.VolumeLabel } else { "$($d.DriveType)" }
+                $out += [PSCustomObject]@{ Letter = $letter; FreeGB = $freeGB; Label = $label }
+            } catch {}
+        }
+    } catch {}
+    return $out
+}
+
 # ---------------------------------------------------------------------------
 # Build the tray
 # ---------------------------------------------------------------------------
@@ -152,6 +173,7 @@ $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $miStatus  = New-Object System.Windows.Forms.ToolStripMenuItem("Claude Lifeboat"); $miStatus.Enabled = $false
 $miDash    = New-Object System.Windows.Forms.ToolStripMenuItem("Open dashboard")
 $miBackup  = New-Object System.Windows.Forms.ToolStripMenuItem("Back up now")
+$miBackupTo= New-Object System.Windows.Forms.ToolStripMenuItem("Back up to a drive...")
 $miRestore = New-Object System.Windows.Forms.ToolStripMenuItem("Restore...")
 $miLogs    = New-Object System.Windows.Forms.ToolStripMenuItem("View today's log")
 $miFolder  = New-Object System.Windows.Forms.ToolStripMenuItem("Open backup folder")
@@ -186,9 +208,20 @@ $miExit.add_Click({
     [System.Windows.Forms.Application]::Exit()
 })
 $miExitStop.add_Click({
+    # Confirm first - this is the one action that turns OFF protection, so we
+    # don't want it triggered by a stray click.
+    $answer = [System.Windows.Forms.MessageBox]::Show(
+        "This stops your AUTOMATIC backups and closes the tray." + [Environment]::NewLine +
+        "Your existing backups stay safe, and you can turn automatic backups back on anytime." + [Environment]::NewLine + [Environment]::NewLine +
+        "Are you sure?",
+        "Stop automatic backups?",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Warning,
+        [System.Windows.Forms.MessageBoxDefaultButton]::Button2)
+    if ($answer -ne [System.Windows.Forms.DialogResult]::Yes) { return }
     Set-ScheduleEnabled $false | Out-Null
-    $notify.ShowBalloonTip(3000, "Claude Lifeboat", "Automatic backups stopped and tray closed. Run 'lifeboat doctor' or reopen the tray to turn them back on.", [System.Windows.Forms.ToolTipIcon]::Info)
-    Start-Sleep -Milliseconds 1200
+    $notify.ShowBalloonTip(5000, "Claude Lifeboat", "Automatic backups stopped. To turn them back on, open Claude Lifeboat again and click 'Resume automatic backups'.", [System.Windows.Forms.ToolTipIcon]::Info)
+    Start-Sleep -Milliseconds 1500
     $notify.Visible = $false; $notify.Dispose()
     [System.Windows.Forms.Application]::Exit()
 })
@@ -198,6 +231,7 @@ $sep = { New-Object System.Windows.Forms.ToolStripSeparator }
 [void]$menu.Items.Add((& $sep))
 [void]$menu.Items.Add($miDash)
 [void]$menu.Items.Add($miBackup)
+[void]$menu.Items.Add($miBackupTo)
 [void]$menu.Items.Add($miRestore)
 [void]$menu.Items.Add((& $sep))
 [void]$menu.Items.Add($miLogs)
@@ -213,6 +247,23 @@ $menu.add_Opening({
     $st = (Get-LifeboatStatus).Status
     $miStatus.Text = (Get-StatusText $st)
     $miPause.Text = if (Get-ScheduleEnabled) { "Pause automatic backups" } else { "Resume automatic backups" }
+
+    # Rebuild the "Back up to a drive..." list from whatever's plugged in now.
+    $miBackupTo.DropDownItems.Clear()
+    $drives = Get-TargetDrives
+    if (-not $drives -or $drives.Count -eq 0) {
+        $none = New-Object System.Windows.Forms.ToolStripMenuItem("(plug in a drive first)")
+        $none.Enabled = $false
+        [void]$miBackupTo.DropDownItems.Add($none)
+    } else {
+        foreach ($drv in $drives) {
+            $text = "{0}   {1} - {2} GB free" -f $drv.Letter, $drv.Label, $drv.FreeGB
+            $item = New-Object System.Windows.Forms.ToolStripMenuItem($text)
+            $lt = $drv.Letter
+            $item.add_Click({ Start-Cli "backup --to=$lt" -Visible }.GetNewClosure())
+            [void]$miBackupTo.DropDownItems.Add($item)
+        }
+    }
 })
 
 $notify.ContextMenuStrip = $menu

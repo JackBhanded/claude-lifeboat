@@ -69,6 +69,7 @@ you'll have the `lifeboat` command for everything below.
 ```powershell
 lifeboat status               # quick health check
 lifeboat backup               # run a backup right now
+lifeboat backup --to=E:       # one-time backup to a USB / removable drive
 lifeboat restore --preview    # SAFE restore: copies to a temp folder first
 lifeboat restore              # interactive restore (with safety snapshot)
 lifeboat dashboard            # open the visual HTML dashboard

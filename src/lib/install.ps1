@@ -173,7 +173,10 @@ function Register-LifeboatTasks {
 
     $runnerPath = Join-Path $script:LifeboatHome "lifeboat-runner.ps1"
 
-    $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Limited
+    # RunLevel Highest so scheduled backups run elevated - required for VSS to
+    # snapshot locked files (the live Cowork sessiondata.vhdx). With S4U there's
+    # no UAC prompt; it runs with the full token quietly in the background.
+    $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Highest
     $settings = New-ScheduledTaskSettingsSet `
         -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
         -StartWhenAvailable `
