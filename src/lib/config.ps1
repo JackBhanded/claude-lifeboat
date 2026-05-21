@@ -13,6 +13,7 @@ function Get-DefaultConfig {
             RetentionWeeklies = 4
         }
         ExtraPaths = @()
+        BackupMode = "lean"   # "lean" skips the regenerable VM OS image (rootfs/smol-bin); "full" keeps everything
         Schedule = @{
             HourlyEnabled = $true
             OnSleep = $true

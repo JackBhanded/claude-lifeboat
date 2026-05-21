@@ -5,9 +5,25 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); versioning per 
 
 ## [Unreleased]
 
-- Lean backup mode: skip the regenerable VM disks (`rootfs.vhdx`, `smol-bin.vhdx`) and keep only `sessiondata.vhdx` + configs, to cut backup storage ~90% (pending restore-consistency testing)
-- Apply `Advanced.ExcludePatterns` in the robocopy wrapper (currently defined in config but not enforced)
 - Real `irm | iex` one-line installer once GitHub releases exist to download from
+
+## [0.1.1] — 2026-05-21
+
+### Added
+- **System tray companion** (`lifeboat tray`): a lifebuoy status-light (green/amber/red) with a right-click control panel — open dashboard, back up now, restore, view logs, open the backup folder, pause/resume the schedule, and two exits (close the tray vs. close it *and* stop automatic backups). Backups run via Task Scheduler independently of the tray.
+- **Lean vs Full backup mode**, chosen at install. Lean (default) skips the regenerable VM OS image (`rootfs.vhdx` / `smol-bin.vhdx`, often 8+ GB) and keeps your actual work (`sessiondata.vhdx`); Full keeps everything for a self-contained restore.
+- **Live progress spinners** (elapsed time + copied-so-far size) on backup and restore, with warm stage-by-stage narration and gentle, recoverable failure messages.
+- Backups skip the redundant daily snapshot when nothing has changed.
+
+### Changed
+- Dashboard reskinned to the light Claude theme (warm cream, Claude coral, soft cards) with the official Claude logo, and moved off the Desktop to `%LOCALAPPDATA%\ClaudeLifeboat\dashboard.html`.
+
+### Fixed
+- Robocopy now excludes volatile cache/cookie/journal files that change mid-copy — the real cause of spurious "ERROR 2" backup failures.
+- The safety-snapshot undo now actually works (the `safety/` folder is enumerated and the timestamp is captured once so the undo command matches).
+- Tray no longer reports phantom failures (an empty failure list serialized to JSON null was being miscounted).
+- Several dashboard rendering bugs: lifeboat emoji exceeding the 16-bit `[char]` range, an em-dash parsed as date-format codes, and a literal em-dash parse error.
+- Restore previews go to a temp folder (auto-opened in Explorer) instead of cluttering the Desktop.
 
 ## [0.1.0] — 2026-05-21
 
@@ -27,5 +43,6 @@ Initial release. Claude-aware automated backup & restore for Windows.
 - Reduced default retention to 2 primary / 5 archive dailies to keep backup storage reasonable given full VM-bundle copies
 - Corrected repository URLs to `github.com/JackBhanded/claude-lifeboat`
 
-[Unreleased]: https://github.com/JackBhanded/claude-lifeboat/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/JackBhanded/claude-lifeboat/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/JackBhanded/claude-lifeboat/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/JackBhanded/claude-lifeboat/releases/tag/v0.1.0

@@ -45,15 +45,27 @@ function Invoke-Backup {
         Write-Host "  Backing up to: $primaryRoot" -ForegroundColor DarkGray
     }
 
+    # Lean mode skips the big regenerable VM OS image (rootfs/smol-bin); your
+    # actual Cowork work lives in sessiondata.vhdx, which is always kept.
+    # "full" keeps everything for a fully self-contained restore.
+    $mode = if ($config.BackupMode) { $config.BackupMode } else { 'lean' }
+    $vmExcludes = if ($mode -eq 'lean') {
+        @('rootfs.vhdx', 'rootfs.vhdx.zst', 'smol-bin.vhdx', '.rootfs.vhdx.origin', '.rootfs.vhdx.zst.origin')
+    } else { @() }
+    if (-not $silent) {
+        $modeLabel = if ($mode -eq 'lean') { "Lean - skipping the regenerable VM OS image" } else { "Full - keeping everything" }
+        Write-Host "  Mode: $modeLabel" -ForegroundColor DarkGray
+    }
+
     $results = @{}
     foreach ($name in $paths.Keys) {
         $src = $paths[$name]
         $dst = Join-Path $primaryLatest $name
         if ($silent) {
-            $result = Invoke-Robocopy $src $dst -Mirror
+            $result = Invoke-Robocopy $src $dst -Mirror -ExtraExcludeFiles $vmExcludes
         } else {
             # Live spinner so big copies (the VM bundle) don't look frozen.
-            $result = Invoke-RobocopyLive $src $dst $name -Mirror
+            $result = Invoke-RobocopyLive $src $dst $name -Mirror -ExtraExcludeFiles $vmExcludes
             if ($result.Success) {
                 Write-Host ("    {0}  OK" -f $name) -ForegroundColor Green
             } else {

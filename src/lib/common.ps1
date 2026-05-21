@@ -70,12 +70,18 @@ function Get-ClaudeDataPaths {
     return $paths
 }
 
-function Invoke-Robocopy($source, $destination, [switch]$Mirror) {
+function Invoke-Robocopy($source, $destination, [switch]$Mirror, [string[]]$ExtraExcludeFiles = @()) {
     # Wrapper for robocopy with sensible defaults.
     # Returns @{ Success = bool; ExitCode = int; Output = string }
     $argList = @($source, $destination)
     if ($Mirror) { $argList += '/MIR' } else { $argList += '/E' }
     $argList += @('/R:1', '/W:1', '/MT:8', '/XJ', '/NFL', '/NDL', '/NJH', '/NJS', '/NC', '/NS', '/NP')
+    # Skip volatile files that get rewritten mid-copy (cookies + SQLite
+    # journals cause benign "ERROR 2" failures) and big regenerable cache
+    # dirs. These aren't worth backing up and they're what flag false failures.
+    $argList += @('/XF', '*.tmp', '*.lock', '*.partial', '*-journal', '*-wal', '*-shm', 'Cookies', 'Cookies-journal', 'LOCK', 'lockfile')
+    $argList += @('/XD', 'Cache', 'GPUCache', 'Code Cache', 'DawnGraphiteCache', 'DawnWebGPUCache', 'GrShaderCache', 'ShaderCache', 'Service Worker', 'CacheStorage')
+    if ($ExtraExcludeFiles -and $ExtraExcludeFiles.Count -gt 0) { $argList += @('/XF') + $ExtraExcludeFiles }
 
     $output = & robocopy @argList 2>&1 | Out-String
     $code = $LASTEXITCODE
@@ -87,7 +93,7 @@ function Invoke-Robocopy($source, $destination, [switch]$Mirror) {
     }
 }
 
-function Invoke-RobocopyLive($source, $destination, $label, [switch]$Mirror) {
+function Invoke-RobocopyLive($source, $destination, $label, [switch]$Mirror, [string[]]$ExtraExcludeFiles = @()) {
     # Same as Invoke-Robocopy, but animates a spinner + elapsed time + a live
     # "copied so far" size on the console while robocopy runs, so a long copy
     # (the multi-GB Cowork VM bundle) doesn't look frozen. Interactive use only
@@ -95,6 +101,12 @@ function Invoke-RobocopyLive($source, $destination, $label, [switch]$Mirror) {
     $argList = @($source, $destination)
     if ($Mirror) { $argList += '/MIR' } else { $argList += '/E' }
     $argList += @('/R:1', '/W:1', '/MT:8', '/XJ', '/NFL', '/NDL', '/NJH', '/NJS', '/NC', '/NS', '/NP')
+    # Skip volatile files that get rewritten mid-copy (cookies + SQLite
+    # journals cause benign "ERROR 2" failures) and big regenerable cache
+    # dirs. These aren't worth backing up and they're what flag false failures.
+    $argList += @('/XF', '*.tmp', '*.lock', '*.partial', '*-journal', '*-wal', '*-shm', 'Cookies', 'Cookies-journal', 'LOCK', 'lockfile')
+    $argList += @('/XD', 'Cache', 'GPUCache', 'Code Cache', 'DawnGraphiteCache', 'DawnWebGPUCache', 'GrShaderCache', 'ShaderCache', 'Service Worker', 'CacheStorage')
+    if ($ExtraExcludeFiles -and $ExtraExcludeFiles.Count -gt 0) { $argList += @('/XF') + $ExtraExcludeFiles }
 
     $outFile = [System.IO.Path]::GetTempFileName()
     $errFile = [System.IO.Path]::GetTempFileName()

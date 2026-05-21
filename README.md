@@ -72,9 +72,14 @@ lifeboat uninstall            # remove scheduled tasks (keeps your backups)
 
 **Always `lifeboat restore --preview` first.** It restores into a temp folder and opens it in Explorer so you can inspect the files before overwriting anything real — nothing in your Claude folders (or on your Desktop) is touched.
 
-## Disk usage — read this
+## Backup size — lean vs full
 
-Backups are full copies (no dedup). Your Claude data includes the Cowork VM bundle, and the Linux image (`rootfs.vhdx`) is ~2 GB. With the default retention (2 primary + 5 archive dailies + 4 weeklies), expect roughly **15–25 GB** of backup storage to protect ~2 GB of live data, because the regenerable VM image is copied into each snapshot. A leaner mode that skips the regenerable disks and keeps only `sessiondata.vhdx` is planned for v0.2 (pending restore-consistency testing). For now, point PRIMARY at a drive with room to spare.
+At install you choose a backup mode:
+
+- **Lean (recommended)** — skips the big, regenerable Cowork VM OS image (`rootfs.vhdx` + `smol-bin.vhdx`, often 8+ GB that Claude rebuilds on its own) and keeps your actual work (`sessiondata.vhdx`), conversations, settings, and Claude Code configs. Tiny and fast.
+- **Full** — backs up everything, including the OS image, for a completely self-contained restore. Larger; point PRIMARY at a drive with room to spare.
+
+Change your mind anytime by re-running `lifeboat install`. Either way, volatile cache/cookie files are always excluded — they're regenerable and were the source of spurious copy errors.
 
 ## Troubleshooting
 

@@ -27,14 +27,14 @@
 [CmdletBinding()]
 param(
     [Parameter(Position=0)]
-    [ValidateSet("install","status","backup","restore","doctor","dashboard","verify","uninstall","version","help")]
+    [ValidateSet("install","status","backup","restore","doctor","dashboard","verify","uninstall","tray","version","help")]
     [string]$Command = "help",
 
     [Parameter(ValueFromRemainingArguments=$true)]
     [string[]]$Arguments
 )
 
-$script:LifeboatVersion = "0.1.0"
+$script:LifeboatVersion = "0.1.1"
 $script:LifeboatHome = "$env:LOCALAPPDATA\ClaudeLifeboat"
 $script:ConfigPath = Join-Path $LifeboatHome "config.json"
 $script:LogDir = Join-Path $LifeboatHome "logs"
@@ -82,6 +82,7 @@ function Show-Help {
     verify       Check that a backup is restorable
     doctor       Diagnose and auto-fix issues
     dashboard    Open the live HTML dashboard
+    tray         Put Claude Lifeboat in your system tray (status light + menu)
     uninstall    Remove scheduled tasks (keeps your backups)
 
   OPTIONS
@@ -122,6 +123,15 @@ switch ($Command) {
     "doctor"    { Invoke-Doctor -Flags $flags }
     "dashboard" { Invoke-Dashboard -Flags $flags }
     "uninstall" { Invoke-Uninstall -Flags $flags }
+    "tray"      {
+                    $trayScript = Join-Path $ScriptRoot "lifeboat-tray.ps1"
+                    if (-not (Test-Path $trayScript)) {
+                        Write-Failure "Tray script not found at $trayScript"
+                    } else {
+                        Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-WindowStyle Hidden -ExecutionPolicy Bypass -File `"$trayScript`""
+                        Write-Success "Claude Lifeboat is now in your system tray - right-click the buoy icon for the menu."
+                    }
+                }
     "version"   { Write-Host "claude-lifeboat v$LifeboatVersion" }
     default     { Show-Help }
 }

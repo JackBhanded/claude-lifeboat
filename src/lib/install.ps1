@@ -36,7 +36,7 @@ function Invoke-Install {
     }
 
     # ----- Question 1: Primary drive -----
-    Write-Heading "Step 1 of 2: Primary backup location"
+    Write-Heading "Step 1 of 3: Primary backup location"
     Write-Host "  Pick a drive that's always available (internal recommended)."
     Write-Host "  Every backup goes here. Fast, reliable, always-on."
     Write-Host ""
@@ -67,7 +67,7 @@ function Invoke-Install {
     Write-Success "Primary: $primaryRoot"
 
     # ----- Question 2: Archive drive (optional) -----
-    Write-Heading "Step 2 of 2: Archive drive (optional)"
+    Write-Heading "Step 2 of 3: Archive drive (optional)"
     Write-Host "  An external drive for long-term versioned backups (7 daily + 4 weekly)."
     Write-Host "  Gets synced from primary automatically when plugged in."
     Write-Host ""
@@ -95,11 +95,26 @@ function Invoke-Install {
         Write-Info "No archive drive configured. You can add one later."
     }
 
+    # ----- Question 3: Backup mode (lean vs full) -----
+    Write-Heading "Step 3 of 3: How much to keep"
+    Write-Host "  Your Cowork VM includes a large, regenerable OS image (rootfs.vhdx -"
+    Write-Host "  often 8+ GB) that Claude rebuilds on its own. Your actual work lives in"
+    Write-Host "  a tiny sessiondata file that's always kept either way."
+    Write-Host ""
+    Write-Host "    [1] Lean  (recommended)  Skip the regenerable OS image. ~99% smaller."
+    Write-Host "    [2] Full                 Keep everything - self-contained restore, but big."
+    Write-Host ""
+    Write-Prompt "Choose [1]:"
+    $modeInput = Read-Host
+    $backupMode = if ($modeInput -eq '2') { 'full' } else { 'lean' }
+    Write-Success $(if ($backupMode -eq 'lean') { "Lean backups - your work, minus the regenerable OS image" } else { "Full backups - everything included" })
+
     # ----- Build config -----
     Write-Heading "Configuring..."
     $config = Get-DefaultConfig
     $config.Primary.Root = $primaryRoot
     if ($archiveRoot) { $config.Archive.Root = $archiveRoot }
+    $config.BackupMode = $backupMode
     Save-LifeboatConfig $config
     Write-Success "Config saved to $script:ConfigPath"
 
