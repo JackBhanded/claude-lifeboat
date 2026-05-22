@@ -15,6 +15,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); versioning per 
 - The one-line installer now **prefers a packaged release asset** when one is
   attached to the release, falling back to GitHub's source archive for older
   asset-less releases (and to `main` if there's no release at all).
+- The tray icon is now a proper **life-ring** glyph (outer ring + coral hub + four
+  lashings) instead of a plain ring-with-dot, so Lifeboat is easy to tell apart
+  from the other fleet tools at a glance. It still doubles as a status light: the
+  ring and lashings carry the green/amber/red/grey health colour, with the hub in
+  Claude coral.
+- README: added an honest **"How it differs from the alternatives"** section.
 
 ## [0.1.4] — 2026-05-21
 

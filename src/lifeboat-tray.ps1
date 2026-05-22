@@ -101,15 +101,15 @@ function New-BuoyIcon([string]$key) {
     $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
     $g.Clear([System.Drawing.Color]::Transparent)
 
-    # Outer ring (status colour) — the buoy body.
+    # Outer ring (status colour) - the buoy body.
     $outer = New-Object System.Drawing.Pen $ring, 4.5
     $g.DrawEllipse($outer, 4, 4, 24, 24)
 
-    # Inner ring (Claude coral) — the open hole / hub.
+    # Inner ring (Claude coral) - the open hole / hub.
     $inner = New-Object System.Drawing.Pen $coral, 3
     $g.DrawEllipse($inner, 11, 11, 10, 10)
 
-    # Four short lashings (N/S/E/W) bridging hub and ring, in the status colour —
+    # Four short lashings (N/S/E/W) bridging hub and ring, in the status colour:
     # short segments only, so the centre hole stays open like a real life ring.
     $spoke = New-Object System.Drawing.Pen $ring, 3.5
     $g.DrawLine($spoke, 16, 5.5, 16, 10.5)         # north
