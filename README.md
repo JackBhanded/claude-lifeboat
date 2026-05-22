@@ -125,6 +125,38 @@ src/
 legacy/               first-generation scripts, archived for reference
 ```
 
+## How it differs from the alternatives
+
+Honestly? There isn't much that does this. When we went looking, Lifeboat turned
+out to be nearly one-of-a-kind — so here's a fair map of the neighbourhood.
+
+The one tool that *also* knows where Claude hides its data is
+**[claude-cowork-migration](https://github.com/Hiroto-Kozuki/claude-cowork-migration)**.
+It's good at what it does, but it's built for a different job: **moving** your
+Cowork data to another drive (say, to free up space on `C:`), not keeping safe,
+dated copies over time. It's a manual copy you run yourself — no schedule, no
+version history, and it needs Claude fully closed while it runs. If your goal is
+literally *"get this giant VM file off my system drive,"* it's the better fit.
+
+Anthropic's own **[Export Data](https://support.claude.com)** (Settings → Privacy)
+is worth knowing about too — but it only gives you your *conversations* as a JSON
+file from the server. It doesn't touch your local Cowork workspace, your logins,
+or your Claude Code setup. Good for a chat archive; not a backup of your machine.
+
+Then there are the excellent **general-purpose** Windows backup tools —
+[Restic](https://restic.net), [Duplicati](https://www.duplicati.com),
+[Kopia](https://kopia.io), Macrium, AOMEI. They're more powerful than Lifeboat in
+the big-picture sense (whole-disk images, encryption, cloud targets, block-level
+dedup), and if you want to back up your *entire computer*, use one of them. What
+they don't do is *know about Claude* — you'd have to find the hidden folders and
+the live VM disk yourself, and several rely on a Windows snapshot component that a
+2026 update is known to have broken on some machines.
+
+That's the gap Lifeboat fills: the only **automatic, versioned, Claude- and
+Cowork-aware** backup, that copies the *live* VM safely, and works on Windows Home
+too. Use a full-disk tool for your whole PC; let Lifeboat look after the Claude
+corner of it.
+
 ## About the author
 
 <table>
