@@ -3,9 +3,18 @@
 All notable changes to Claude Lifeboat are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/); versioning per [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.1.5] — 2026-05-25
+
+### Changed
+- **A gorgeous new look (elevated Claude-brew).** The dashboard is now frosted
+  glassmorphism over a soft aurora — glass cards, gradient drive-usage bars,
+  tinted status badges, and an automatic dark mode that follows your OS.
 
 ### Added
+- **Run at startup.** A new "Run at startup" toggle in the tray menu pins the
+  Lifeboat tray to your per-user Windows startup (no admin needed), so the buoy
+  reappears when you log in. This only controls the tray itself; your automatic
+  backups run on their own schedule regardless.
 - **Real release packaging** (`tools\Build-Release.ps1`). Builds a clean,
   versioned `claude-lifeboat-v<version>.zip` plus a SHA256 checksum, containing
   only what an end user needs (no `legacy/`, no dev notes). Version is read from

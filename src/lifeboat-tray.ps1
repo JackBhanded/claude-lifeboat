@@ -17,6 +17,16 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
+# Single-instance guard: if a Lifeboat tray is already running in this session,
+# bow out quietly so a second launch (or double-click) doesn't stack a duplicate.
+try {
+    $createdNew = $false
+    $script:SingleInstanceMutex = New-Object System.Threading.Mutex($true, "Local\ClaudeLifeboatTray", [ref]$createdNew)
+    if (-not $createdNew) { exit 0 }
+} catch {
+    # If the guard can't be created for any reason, carry on rather than block.
+}
+
 # Win32 to release unmanaged icon handles created by Bitmap.GetHicon()
 Add-Type @"
 using System;
@@ -154,6 +164,39 @@ function Set-ScheduleEnabled([bool]$enabled) {
     } catch { return $false }
 }
 
+# --- Run-at-startup (the tray itself, at logon) -----------------------------
+# We use the per-user Run key so no admin / UAC is needed - same approach as the
+# rest of the fleet. This is separate from the backup schedule: it only controls
+# whether the tray buoy reappears when you log in.
+$script:StartupRunKey   = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+$script:StartupValueName = "ClaudeLifeboatTray"
+
+function Get-StartupCommand {
+    # Re-launch THIS tray script, hidden, at logon.
+    $tray = $PSCommandPath
+    if (-not $tray) { $tray = $MyInvocation.MyCommand.Definition }
+    return ('powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File "{0}"' -f $tray)
+}
+
+function Get-StartupEnabled {
+    try {
+        $v = Get-ItemProperty -Path $script:StartupRunKey -Name $script:StartupValueName -ErrorAction SilentlyContinue
+        return [bool]($v -and $v.$($script:StartupValueName))
+    } catch { return $false }
+}
+
+function Set-StartupEnabled([bool]$enabled) {
+    try {
+        if ($enabled) {
+            if (-not (Test-Path $script:StartupRunKey)) { New-Item -Path $script:StartupRunKey -Force | Out-Null }
+            Set-ItemProperty -Path $script:StartupRunKey -Name $script:StartupValueName -Value (Get-StartupCommand)
+        } else {
+            Remove-ItemProperty -Path $script:StartupRunKey -Name $script:StartupValueName -ErrorAction SilentlyContinue
+        }
+        return $true
+    } catch { return $false }
+}
+
 function Get-TargetDrives {
     # Drives we can offer for an on-demand backup: ready, not the system drive,
     # not a CD/DVD.
@@ -195,6 +238,7 @@ $miRestore = New-Object System.Windows.Forms.ToolStripMenuItem("Restore...")
 $miLogs    = New-Object System.Windows.Forms.ToolStripMenuItem("View today's log")
 $miFolder  = New-Object System.Windows.Forms.ToolStripMenuItem("Open backup folder")
 $miPause   = New-Object System.Windows.Forms.ToolStripMenuItem("Pause automatic backups")
+$miStartup = New-Object System.Windows.Forms.ToolStripMenuItem("Run at startup"); $miStartup.CheckOnClick = $true
 $miExit    = New-Object System.Windows.Forms.ToolStripMenuItem("Exit  (backups keep running)")
 $miExitStop= New-Object System.Windows.Forms.ToolStripMenuItem("Exit & stop automatic backups")
 
@@ -218,6 +262,18 @@ $miPause.add_Click({
         if (Set-ScheduleEnabled $true) {
             $notify.ShowBalloonTip(3000, "Claude Lifeboat", "Automatic backups resumed. Welcome back aboard.", [System.Windows.Forms.ToolTipIcon]::Info)
         }
+    }
+})
+$miStartup.add_Click({
+    # CheckOnClick has already flipped .Checked to the desired new state.
+    if (Set-StartupEnabled $miStartup.Checked) {
+        if ($miStartup.Checked) {
+            $notify.ShowBalloonTip(3000, "Claude Lifeboat", "The tray buoy will now sail in with Windows at startup.", [System.Windows.Forms.ToolTipIcon]::Info)
+        } else {
+            $notify.ShowBalloonTip(3000, "Claude Lifeboat", "The tray won't start automatically anymore - your backups keep running regardless.", [System.Windows.Forms.ToolTipIcon]::Info)
+        }
+    } else {
+        $miStartup.Checked = (Get-StartupEnabled)   # write failed - show the truth
     }
 })
 $miExit.add_Click({
@@ -255,6 +311,7 @@ $sep = { New-Object System.Windows.Forms.ToolStripSeparator }
 [void]$menu.Items.Add($miFolder)
 [void]$menu.Items.Add((& $sep))
 [void]$menu.Items.Add($miPause)
+[void]$menu.Items.Add($miStartup)
 [void]$menu.Items.Add((& $sep))
 [void]$menu.Items.Add($miExit)
 [void]$menu.Items.Add($miExitStop)
@@ -264,6 +321,7 @@ $menu.add_Opening({
     $st = (Get-LifeboatStatus).Status
     $miStatus.Text = (Get-StatusText $st)
     $miPause.Text = if (Get-ScheduleEnabled) { "Pause automatic backups" } else { "Resume automatic backups" }
+    $miStartup.Checked = (Get-StartupEnabled)
 
     # Rebuild the "Back up to a drive..." list from whatever's plugged in now.
     $miBackupTo.DropDownItems.Clear()
